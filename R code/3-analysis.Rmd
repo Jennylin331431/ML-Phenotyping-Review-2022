@@ -1,0 +1,200 @@
+---
+title: "Article analysis"
+author: "Siyue Yang, Jessica Gronsbell"
+date: "Last Updated: 10/10/2022"
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+knit: (function(inputFile, encoding) {
+      out_dir <- "../report";
+      rmarkdown::render(inputFile,
+                        encoding=encoding,
+                        output_dir=file.path(dirname(inputFile), out_dir))})
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r, eval = T}
+# Load necessary packages
+library(ggplot2)
+library(tidyverse)
+library(kableExtra)
+library(ggsci)
+library(grid)
+library(gridExtra)
+library(ggvenn)
+library(ggpattern)
+library(cowplot)
+
+# Functions for analysis
+source('analysis_functions.R')
+```
+
+```{r, eval = T}
+# Read in annotation file and include selected articles
+df_all <- read.csv("../Data/annotations050822.csv", skip = 1)
+df <- df_all %>% filter(Include_FR_SY == 1)
+
+# Create variable indicating use of unstructured data
+df$Unstructured <- (df$Unstructured_data_type != "")
+
+# Create variable indicating use of structured data
+df$Structured <- (df$Structured_data_type != "")
+
+# Create variable indicating types of data used for analysis
+df$Data_type[df$Structured == 1] <- "Structured"
+df$Data_type[df$Unstructured == 1] <- "Free-text"
+df$Data_type[df$Unstructured + df$Structured == 2] <- "Both structured and free-text"
+
+# Create variable indicating use of traditional ML method
+df$Traditional[df$DL == ''] <- "Traditional machine learning"
+df$Traditional[df$DL != ''] <- "Deep learning"
+```
+
+\clearpage
+
+# Overview 
+
+```{r}
+df$ML_type <- factor(df$ML_type, levels = c("Supervised", 
+                                             "Semi-supervised", 
+                                             "Weakly-supervised", 
+                                             "Unsupervised"))
+
+stacked_bar(df, "ML_type", "Traditional", order_by_count = FALSE)
+```
+
+## Traditional ML methods 
+
+```{r}
+# Traditional ML method.
+traditional_ML_method_unnested <- unnest_string_var(df, "Traditional_ML_method")
+
+print_tables(traditional_ML_method_unnested, 
+             "ML_type", 
+             "Traditional_ML_method_unnested",
+             top_count = 25, 
+             restric_count = TRUE,
+             title = "Common traditional machine learning methods (Count > 1)")
+
+print_multiple_items(traditional_ML_method_unnested, 
+                     "traditional machine learning methods")
+```
+
+## DL methods
+
+```{r}
+# DL methods. 
+deep_learning_method_unnested <- unnest_string_var(df, "DL_method")
+
+print_tables(deep_learning_method_unnested, 
+             "DL_method_unnested", 
+             "ML_type", 
+             top_count = 25,
+             restric_count = TRUE,
+             title = "Common deep learning methods (Count > 1)", 
+             )
+
+print_multiple_items(deep_learning_method_unnested, "deep learning methods")
+```
+
+
+```{r}
+# Create dataframes for analysis of each ML subtype.
+traditional_supervised <- df %>% filter(ML_type == "Supervised") %>% filter(DL_method == '')
+
+deep_supervised <- df %>% filter(ML_type == "Supervised") %>% filter(DL_method != '')
+
+semi_supervised <- df %>% filter(ML_type == "Semi-supervised") 
+
+weakly_supervised <- df %>% filter(ML_type == "Weakly-supervised") 
+
+un_supervised <- df %>% filter(ML_type == "Unsupervised") 
+```
+
+```{r}
+# Create labels for analysis of each ML subtype.
+traditional_supervised$Category <- "Traditional supervised"
+
+deep_supervised$Category <- "Deep supervised"
+
+semi_supervised$Category <- "Semi-supervised"
+
+weakly_supervised$Category <- "Weakly-supervised"
+
+un_supervised$Category <- "Unsupervised"
+```
+
+### Deep neural network variants
+
+```{r, fig.height=6}
+RNN_method_unnested <- unnest_string_var(deep_supervised, "RNN_subname")
+RNN_plot <- horizontal_bar(RNN_method_unnested,
+                     "RNN_subname_unnested",
+                     title = "RNN",
+                     ylim = 12)
+
+CNN_method_unnested <- unnest_string_var(deep_supervised, "CNN_subname")
+CNN_plot <- horizontal_bar(CNN_method_unnested,
+                     "CNN_subname_unnested",
+                     title = "CNN",
+                     ylim = 12)
+
+BERT_method_unnested <- unnest_string_var(deep_supervised, "BERT_subname")
+BERT_plot <- horizontal_bar(BERT_method_unnested,
+                           "BERT_subname_unnested",
+                           title = "BERT",
+                           ylim = 12)
+
+FFNN_method_unnested <- unnest_string_var(deep_supervised, "FFNN_subname")
+FFNN_plot <- horizontal_bar(FFNN_method_unnested,
+                           "FFNN_subname_unnested",
+                           title = "FFFN",
+                           ylim = 12)
+
+plot_grid(RNN_plot,
+          CNN_plot,
+          BERT_plot,
+          FFNN_plot,
+          ncol = 2, 
+          nrow = 2,
+          align = "v",
+          axis = "l")
+```
+
+\clearpage 
+# Phenotypes
+
+```{r, eval = FALSE}
+# Unique phenotypes
+pheno_unnested <- unnest_string_var(df %>% filter(Competition_data_name == ""),
+                                    "Phenotype")
+print(paste("The articles considered", 
+             length(unique(pheno_unnested$Phenotype_unnested)), "phenotypes"))
+
+# Articles with more than 1 phenotype
+print(paste(sum(df$Total_number_of_phenos > 1, na.rm = TRUE),
+             "articles considered more than 1 phenotype"))
+
+# Articles that considered the various kinds of phenotypes
+print(paste(sum(df$Pheno_binary > 0, na.rm = TRUE),
+             "articles considered binary phenotypes"))
+
+print(paste(sum(df$Pheno_severity > 0, na.rm = TRUE),
+             "articles considered severity phenotypes"))
+
+print(paste(sum(df$Pheno_temporal > 0, na.rm = TRUE),
+             "articles considered temporal phenotypes"))
+```
+
+```{r, fig.height = 8}
+# Phenotypes considered in non-competition articles - check this function
+plot_all_top_pheno(traditional_supervised,
+                               deep_supervised,
+                               semi_supervised,
+                               weakly_supervised,
+                               un_supervised)
+```
