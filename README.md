@@ -44,9 +44,11 @@ We performed all analyses using R version 4.1.0 and used a variety of packages f
 
 ### Data for Analysis
 
+Files used for merging:
+
 - [PubMed data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/pubmed20220414.csv): All articles extracted from PubMed.  
 
 - [Web of Science data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/webofscience20220414.csv): All articles extracted from Web of Science.
 
-- [AMIA Publication Date data]([https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/annotations050822.csv](https://github.com/jlgrons/ML-Phenotyping-Review-Final-2022/blob/main/Data/amia20220414.csv): Correct publication dates for AMIA articles; used to resolve a publication date conflict observed in PubMed.
+- [AMIA Publication Date data](https://github.com/jlgrons/ML-Phenotyping-Review-Final-2022/blob/main/Data/amia20220414.csv): Correct publication dates for AMIA articles; used to resolve a publication date conflict observed in PubMed.
 
