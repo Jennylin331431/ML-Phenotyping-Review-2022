@@ -42,11 +42,11 @@ We performed all analyses using R version 4.1.0 and used a variety of packages f
 
 - [analysis_functions.R](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/rmd/analysis_functions.R): Helper functions for analysis. 
 
-### Relevant Data for Analysis
+### Data for Analysis
 
-- [PubMed data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/pubmed20220414.csv).  
+- [PubMed data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/pubmed20220414.csv): All articles extracted from PubMed.  
 
-- [Web of Science data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/webofscience20220414.csv).
+- [Web of Science data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/webofscience20220414.csv): All articles extracted from Web of Science.
 
-- [Annotated article data](https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/annotations050822.csv).
+- [AMIA Publication Date data]([https://github.com/siyueyang/ml-phenotyping-review-2022/blob/main/data/annotations050822.csv](https://github.com/jlgrons/ML-Phenotyping-Review-Final-2022/blob/main/Data/amia20220414.csv): Correct publication dates for AMIA articles; used to resolve a publication date conflict observed in PubMed.
 
