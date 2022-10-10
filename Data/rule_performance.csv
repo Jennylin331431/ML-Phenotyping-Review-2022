@@ -1,0 +1,31 @@
+﻿Study1,PMID,Best_performing_model,Study2,Phenotype,Phenotype_ref,Data_source,Category,Compare_with_rule_based,Model_performance_metrics,Best_performing_name,Best_performing_AUROC,Best_performing_Fscore,Best_performing_PPV,Best_performing_Sensitivity,Best_performing_NPV,Best_performing_Specificity,Best_comparator_Rule,Best_comparator_Rule_AUROC,Best_comparator_Rule_Fscore,Best_comparator_Rule_PPV,Best_comparator_Rule_Sensitivity,Best_comparator_Rule_NPV,Best_comparator_Rule_Specificity,Best_comparator_DL,Best_comparator_DL_AUROC,Best_comparator_DL_Fscore,Best_comparator_DL_PPV,Best_comparator_DL_Sensitivity,Best_comparator_DL_Specificity,Best_comparator_traditional,Best_comparator_traditional_AUROC,Best_comparator_traditional_Fscore,Best_comparator_traditional_PPV,Best_comparator_traditional_Sensitivity,Best_comparator_traditional_NPV,Best_comparator_traditional_Specificity,Additional_traditional_ML,Additional_traditional_AUROC,Additional_traditional_Fscore,Additional_traditional_Fscore_PPV,Additional_traditional_Sensitivity,Additional_traditional_NPV
+"Stroke
+Greater Cincinnati/Northern Kentucky Stroke Study
+29444182",29444182,Traditional ML,Stroke Greater Cincinnati/Northern Kentucky Stroke Study,Stroke,Stroke [74],Greater Cincinnati/Northern Kentucky Stroke Study,ML_better,ICD coding,Accuracy; Precision; Recall; F-score; AUROC,Random forest,0.8984,0.933,0.9381,0.928,,,ICD coding,0.554,0.7406,0.8841,0.6372,,,,,,,,,SVM,0.8661,0.9341,0.9099,0.9597,,,Logistic regression,0.5165,0.9284,0.894,0.9654,
+"Hepatorenal syndrome
+Veterans Affairs hospitals
+29530803",29530803,Traditional ML,Hepatorenal syndrome Veterans Affairs hospitals,Hepatorenal syndrome,Hepatorenal syndrome [154],Veterans Affairs hospitals,Either,ICD coding,AUROC; F-score; Precision; Recall; Calibration plots; Brier score,Logistic regression,0.93,,,0.854,,0.84,ICD coding,,,0.786,0.576,0.746,0.888,,,,,,,Random forest,0.91,,,,,,SVM,0.9,,,,
+"Alcohol abuse
+A Level I Trauma Center
+30602031",30602031,Traditional ML,Alcohol abuse A Level I Trauma Center,Alcohol abuse,Alcohol abuse [46],A Level I Trauma Center,Either,Keyword matching,AUROC; NPV; Precision; Recall; Specificity; Calibration plots,Logistic regression,0.78,,0.6,0.56,0.87,0.889,Keyword matching,,,0.522,0.182,0.794,0.949,,,,,,,,,,,,,,,,,,,
+"Acute respiratory distress syndrome
+Loyola University Medical Center
+30815053",30815053,Traditional ML,Acute respiratory distress syndrome Loyola University Medical Center,Acute respiratory distress syndrome,Acute respiratory distress syndrome [155],Loyola University Medical Center,PPV_better,Keyword matching,Precision; Accuracy; Recall; Specificity; NPV; AUROC,Linear SVM,,,0.714,0.556,0.859,0.924,Keyword matching,,,0.417,0.769,0.893,0.641,,,,,,,,,,,,,,,,,,,
+"Metastatic prostate cancer
+Stanford Health Care
+30815195",30815195,Traditional ML,Metastatic prostate cancer Stanford Health Care,Metastatic prostate cancer,Metastatic prostate cancer [37],Stanford Health Care,PPV_better,ICD coding,Precision; Recall,Random forest,,,0.9,0.4,,,ICD coding,,,0.33,0.54,,,,,,,,,,,,,,,,,,,,,
+"Obesity and multiple comorbidities
+Partners/MGB
+31622801",31622801,Rule-based,Obesity and multiple comorbidities Partners/MGB,Obesity and multiple comorbidities,Obesity and multiple comorbidities [156],Partners/MGB,Rule_better,Rule-based,F-score; Precision; Recall,Rule-based,,,0.9756,0.9756,0.9756,,,,,,,,,,,,,,,Random forest,,0.9536,0.9536,0.9536,,,Decision trees,,0.9497,0.9497,0.9497,
+"Marital status
+University of Utah Health Sciences Center
+32308819",32308819,Rule-based,Marital status University of Utah Health Sciences Center,Marital status,Marital status [157],University of Utah Health Sciences Center,Rule_better,Rule-based,F-score; Precision; Recall,Rule-based,,0.97,0.97,0.97,,,,,,,,,,,,,,,,Random forest,,0.63,0.84,0.56,,,,,,,,
+"Clinical trial eligibility for n2c2 2018 challenge
+Partners/MGB
+32360937",32360937,Traditional ML,Clinical trial eligibility for n2c2 2018 challenge Partners/MGB,Clinical trial eligibility for n2c2 2018 challenge,Clinical trial eligibility for n2c2 2018 challenge [158],Partners/MGB,ML_better,Rule-based,F-score; Precision; Recall,SVM,0.881,0.877,0.829,0.889,,0.873,Rule-based,0.867,0.842,0.825,0.861,,0.842,,,,,,,,,,,,,,,,,,,
+"COVID-19
+Partners/MGB
+33566082",33566082,Traditional ML,COVID-19 Partners/MGB,COVID-19,COVID-19 [136],Partners/MGB,ML_better,ICD coding,Recall; Specificity; AUROC; Precision; NPV; F-score,Logistic regression,0.956,,,0.87,,0.89,ICD coding,,0.79,0.82,0.76,0.85,0.89,,,,,,,,,,,,,,,,,,,
+"Rhabdomyolysis
+IBM Explorys database
+33712852",33712852,Traditional ML,Rhabdomyolysis IBM Explorys database,Rhabdomyolysis,Rhabdomyolysis [35],IBM Explorys database,PPV_better,Rule-based,AUROC; Recall; Specificity; Precision,Super Learner,0.822,,0.756,0.253,,,Rule-based,0.751,,0.44,0.512,,,FFNN,0.77,,0.096,0.48,,Random forest,0.842,,0.116,0.721,,,,,,,,
