@@ -282,6 +282,7 @@ plot_all_top_pheno <- function(traditional_supervised,
                   weakly_supervised,
                   un_supervised)
 
+  # Remove competition data since these have set phenotypes.
   df_wo_comp <- df_all %>% filter(Competition_data_name == '')
 
   phenotype_unnested <- unnest_string_var(df_wo_comp, "Phenotype")
@@ -471,9 +472,8 @@ print_tables <- function(df,
 }
 
 
-
-
 # Function for number of papers using multiple types of a single variable.
+#------------------------------------------------------------------------#
 # df: dataframe.
 # item: variable to count number of papers using multiples.
 print_multiple_items <- function(df, item) {
@@ -507,7 +507,7 @@ unnest_string_var <- function(df, var) {
 }
 
 # Function to unnest two column with strings separated by a semi-colon.
-unnest_validate_string <- function(df, comapartor = "deep") {
+unnest_validate_string <- function(df, comparator = "deep") {
 
   # Specifically for validation columns, they are recorded in paired columns by
   # semi-colons.
@@ -517,7 +517,7 @@ unnest_validate_string <- function(df, comapartor = "deep") {
 
   res <- df %>% select(PMID, Data_source)
 
-  if (comapartor == "deep") {
+  if (comparator == "deep") {
 
     for (metric in c("Sensitivity", "Specificity", "PPV", "AUROC")) {
 
@@ -664,7 +664,7 @@ get_weakly_metrics <- function(df, comparator = "rule"){
 
   }
 
-  df <- unnest_validate_string(df, comapartor = "weakly")
+  df <- unnest_validate_string(df, comparator = "weakly")
 
   df %>%
     unite("Study1", c(Phenotype, Data_source, PMID), sep = "\n", remove = FALSE) %>%

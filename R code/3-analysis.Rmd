@@ -195,12 +195,11 @@ print(paste(sum(df$Pheno_temporal > 0, na.rm = TRUE),
 ```
 
 ```{r, fig.height = 8}
-# Phenotypes considered in non-competition articles - check this function
 plot_all_top_pheno(traditional_supervised,
-                               deep_supervised,
-                               semi_supervised,
-                               weakly_supervised,
-                               un_supervised)
+                   deep_supervised,
+                   semi_supervised,
+                   weakly_supervised,
+                   un_supervised)
 ```
 
 ## Unstratified summary of phenotypes considered
@@ -233,8 +232,8 @@ stacked_bar(data_source, "Category", "Data_type", order_by_count = FALSE) +
 ```
 
 ```{r, eval =T}
-data_unnested <- unnest_string_var(df, "Data_type")
-print_tables(data_unnested, 
+data_source_unnested <- unnest_string_var(df, "Data_type")
+print_tables(data_source_unnested, 
              "Data_type", 
              top_count = 10, 
              title = "Use of structured and unstructured data")
@@ -269,9 +268,9 @@ unstructured_data_use <- df %>%
   filter(Unstructured == 1) %>%
   filter(Competition_data_name == "")
 
-unstructured_data_use <- unnest_string_var(unstructured_data_use, "Unstructured_data_type")
+unstructured_data_use_unnested <- unnest_string_var(unstructured_data_use, "Unstructured_data_type")
 
-p2 <- horizontal_bar(unstructured_data_use, 
+p2 <- horizontal_bar(unstructured_data_use_unnested, 
                      "Unstructured_data_type_unnested", 
                      string_wrap = 20, 
                      restrict_count = TRUE, 
@@ -281,7 +280,7 @@ p2 <- horizontal_bar(unstructured_data_use,
                      label_text = TRUE,
                      ylab = "Number of articles")
 
-print_multiple_items(data_unnested, "unstructured data types")
+print_multiple_items(unstructured_data_use_unnested, "unstructured data types")
 
 plot_grid(p1, p2, ncol = 1, align = "v", axis = "l", labels = c('(a)', '(b)')) 
 ```
@@ -310,10 +309,11 @@ print_tables(term_unnested,
 ## Natural language processing (NLP) software
 
 ```{r}
-method_unnested <- unnest_string_var(df, "NLP_software")
-print_multiple_items(method_unnested, "NLP software")
+nlp_unnested <- unnest_string_var(df, "NLP_software")
 
-print_tables(method_unnested, 
+print_multiple_items(nlp_unnested, "NLP software")
+
+print_tables(nlp_unnested, 
              "NLP_software_unnested", 
              "ML_type", 
              "Traditional", 
@@ -326,23 +326,36 @@ print_tables(method_unnested,
 Embeddings were only used in deep supervised articles. 
 
 ```{r}
-method_unnested <- unnest_string_var(deep_supervised, "Embedding_training_data")
-print_tables(method_unnested, "Embedding_training_data_unnested", top_count = 10)
-print_multiple_items(method_unnested, "embedding training data")
+embedding_data_unnested <- unnest_string_var(deep_supervised, 
+                                             "Embedding_training_data")
 
-method_unnested <- unnest_string_var(deep_supervised, "Embedding")
-print_tables(method_unnested, "Embedding_unnested", top_count = 10)
-print_multiple_items(method_unnested, "embedding training methods")
+print_tables(embedding_data_unnested, 
+             "Embedding_training_data_unnested",
+             top_count = 10)
+
+print_multiple_items(embedding_data_unnested,
+                     "embedding training data")
 ```
 
+```{r}
+embedding_training_unnested <- unnest_string_var(deep_supervised, "Embedding")
+
+print_tables(embedding_training_unnested, 
+             "Embedding_unnested", 
+             top_count = 10)
+
+print_multiple_items(embedding_training_unnested, "embedding training methods")
+```
 
 ## Openly-available data
 
+### Competition data
 ```{r}
-method_unnested <- unnest_string_var(df, "Competition_data_name")
-print_multiple_items(method_unnested, "Competition data")
+competition_data_unnested <- unnest_string_var(df, "Competition_data_name")
 
-print_tables(method_unnested, 
+print_multiple_items(competition_data_unnested, "competition data")
+
+print_tables(competition_data_unnested, 
              "Competition_data_name_unnested", 
              "ML_type", 
              "Traditional", 
@@ -360,16 +373,21 @@ stacked_bar(method_unnested %>% filter(Competition_data_name != ""),
 
 
 ```{r, eval = FALSE}
-df %>% filter(Competition_data_name != "") %>% nrow()
+print(paste(df %>% filter(Competition_data_name != "") %>% nrow(),
+      "articles used competition data"))
 ```
 
+\newpage
+### Other publicly available data sources
 ```{r}
-method_unnested <- unnest_string_var(df %>% filter(Competition_data_name == ""), "Data_source")
+open_data_unnested <- unnest_string_var(df %>% filter(Competition_data_name == ""), 
+                                     "Data_source")
 
 open_data <- c("MIMIC-III database", "MTSamples database")
-method_unnested <- method_unnested %>% filter(Data_source_unnested %in% open_data)
+open_data_unnested <- open_data_unnested %>% 
+  filter(Data_source_unnested %in% open_data)
 
-print_tables(method_unnested, 
+print_tables(open_data_unnested, 
              "Data_source_unnested", 
              "ML_type", 
              "Traditional", 
@@ -378,6 +396,7 @@ print_tables(method_unnested,
 ```
 
 
+\newpage
 ## Private data sources and demographics reporting 
 
 ```{r}
@@ -401,7 +420,7 @@ print_tables(count_unnested,
              hold_pos = TRUE)
 ```
 
-## Data sources summary different ML paradigms
+## Data sources summary across different ML paradigms
 \newpage
 ```{r}
 print_summary_table(list(traditional_supervised, 
@@ -418,23 +437,22 @@ print_summary_table(list(traditional_supervised,
 # US = Unsupervised learning. 
 ```
 
-
-
-
-
-
-# Validation and comparison
+# Reporting and evaluation 
 
 ## Traditonal supervised ML vs. rule-based
 
 ```{r, fig.height=8}
-plot_validate_metrics(traditional_supervised, comparator = "rule", large_fig = FALSE)
+plot_validate_metrics(traditional_supervised,
+                      comparator = "rule",
+                      large_fig = FALSE)
 ```
 
 ## Deep supervised ML vs. traditional supervised ML
 
 ```{r, fig.height = 8}
-plot_validate_metrics(deep_supervised, comparator = "deep", large_fig = FALSE)
+plot_validate_metrics(deep_supervised, 
+                      comparator = "deep", 
+                      large_fig = FALSE)
 ```
 
 ```{r, eval = FALSE}
