@@ -149,7 +149,7 @@ horizontal_bar <- function(df,
                 aes(x = reorder(!!sym(group_var), -Count, sum),
                     y = Count))
 
-    if (!is.na(color_grid)) {
+    if (any(!is.na(color_grid))) {
 
       p <- p + geom_bar(aes(fill = !!sym(group_var)), stat = "identity")
 
