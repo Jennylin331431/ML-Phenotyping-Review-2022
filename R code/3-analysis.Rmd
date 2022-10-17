@@ -205,8 +205,22 @@ plot_all_top_pheno(traditional_supervised,
 # All phenotype with count > 1.
 temporal_unnested <- unnest_string_var(df, "Phenotype")
 
-horizontal_bar(temporal_unnested, "Phenotype_unnested", 
+horizontal_bar(temporal_unnested, 
+               "Phenotype_unnested", 
                restrict_count = TRUE,
                ylim = 10,
                legend_cap = "Temporal phenotype category")
+```
+
+## Summary
+
+```{r}
+data_source <- rbind(traditional_supervised, 
+                     deep_supervised, 
+                     semi_supervised, 
+                     weakly_supervised, 
+                     un_supervised)
+
+stacked_bar(data_source, "Category", "Data_type", order_by_count = FALSE) +
+  scale_y_continuous(n.breaks = 10)
 ```
