@@ -4,7 +4,7 @@ author: "Siyue Yang, Jessica Gronsbell"
 date: "Last Updated: 10/10/2022"
 output: pdf_document
 knit: (function(inputFile, encoding) {
-      out_dir <- "../report";
+      out_dir <- "../Reports";
       rmarkdown::render(inputFile,
                         encoding=encoding,
                         output_dir=file.path(dirname(inputFile), out_dir))})
@@ -72,8 +72,9 @@ exclusion <- merge(step1, step2, by = "Primary reason for exclusion", all = TRUE
 colnames(exclusion) <- c("Primary reason for exclusion", "Title and abstract review", "Full-text review")
 
 # Replace NA with 0.
+exclusion$`Full-text review` <- exclusion$`Full-text review` %>% replace_na(0)
+
 exclusion <- exclusion %>%
-  mutate_all(funs(replace_na(., 0))) %>%
   mutate(Total = `Title and abstract review` + `Full-text review`) 
 
 exclusion %>%
