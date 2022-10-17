@@ -198,3 +198,15 @@ plot_all_top_pheno(traditional_supervised,
                                weakly_supervised,
                                un_supervised)
 ```
+
+## More nuanced phenotype
+
+```{r, eval = F}
+# All phenotype with count > 1.
+temporal_unnested <- unnest_string_var(df, "Phenotype")
+
+horizontal_bar(temporal_unnested, "Phenotype_unnested", 
+               restrict_count = TRUE,
+               ylim = 10,
+               legend_cap = "Temporal phenotype category")
+```
