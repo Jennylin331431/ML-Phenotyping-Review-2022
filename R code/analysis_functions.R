@@ -563,50 +563,6 @@ unnest_validate_string <- function(df, comparator = "deep") {
 
 
 
-
-
-# Figure to plot data types.
-plot_data_source <- function(df,
-                             group_var,
-                             order_by_count = FALSE,
-                             title = NULL,
-                             facet = FALSE,
-                             facet_var = NULL,
-                             large_fig = FALSE){
-  # Summarize the total number.
-  temp_df <- df %>%
-    group_by(!!sym(group_var), Category) %>%
-    summarise(Count = n())
-
-  # Font size.
-  if (large_fig) {
-    text_size <- 5
-    axis_text_size <- 15
-  } else {
-    text_size <- 2
-    axis_text_size <- 8
-  }
-
-  ggplot(data = temp_df, aes(x = Category, y = Count, fill = !!sym(group_var))) +
-    geom_bar(stat="identity", position = position_stack()) +
-    scale_fill_jama() +
-    labs(y = "", title = title) +
-    geom_text(aes(label = Count),
-              position = position_stack(),
-              vjust = -0.5,
-              size = text_size)
-  theme_bw() +
-    theme(axis.title.x = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          legend.position = "bottom",
-          legend.title = element_blank(),
-          axis.text.y = element_text(size = axis_text_size),
-          legend.text = element_text(size = axis_text_size),
-          strip.text.x = element_text(size = axis_text_size),
-          plot.title = element_text(face = "bold", size = axis_text_size))
-}
-
 # Get the validation metrics for deep ML.
 get_deep_metrics <- function(df) {
 
