@@ -1,7 +1,7 @@
 ---
-title: "Article analysis"
+title: "Analysis of selected articles"
 author: "Siyue Yang, Jessica Gronsbell"
-date: "Last Updated: 10/10/2022"
+date: "Last Updated: 10/17/2022"
 output: 
   pdf_document:
     toc: true
@@ -56,7 +56,9 @@ df$Traditional[df$DL != ''] <- "Deep learning"
 
 \clearpage
 
-# Overview 
+# Machine learning (ML) methods
+
+## ML paradigms
 
 ```{r}
 df$ML_type <- factor(df$ML_type, levels = c("Supervised", 
@@ -84,7 +86,7 @@ print_multiple_items(traditional_ML_method_unnested,
                      "traditional machine learning methods")
 ```
 
-## DL methods
+## Deep learning (DL) methods
 
 ```{r}
 # DL methods. 
@@ -128,7 +130,8 @@ weakly_supervised$Category <- "Weakly-supervised"
 un_supervised$Category <- "Unsupervised"
 ```
 
-### Deep neural network variants
+
+### Neural network variants
 
 ```{r, fig.height=6}
 RNN_method_unnested <- unnest_string_var(deep_supervised, "RNN_subname")
@@ -168,6 +171,7 @@ plot_grid(RNN_plot,
 \clearpage 
 # Phenotypes
 
+## Phenotypes considered across ML paradigms
 ```{r, eval = FALSE}
 # Unique phenotypes
 pheno_unnested <- unnest_string_var(df %>% filter(Competition_data_name == ""),
@@ -199,9 +203,9 @@ plot_all_top_pheno(traditional_supervised,
                                un_supervised)
 ```
 
-## More nuanced phenotype
+## Unstratified summary of phenotypes considered
 
-```{r, eval = F}
+```{r}
 # All phenotype with count > 1.
 temporal_unnested <- unnest_string_var(df, "Phenotype")
 
@@ -212,7 +216,10 @@ horizontal_bar(temporal_unnested,
                legend_cap = "Temporal phenotype category")
 ```
 
-## Summary
+\clearpage
+# Data sources
+
+## Use of structured and unstructured data
 
 ```{r}
 data_source <- rbind(traditional_supervised, 
@@ -223,4 +230,357 @@ data_source <- rbind(traditional_supervised,
 
 stacked_bar(data_source, "Category", "Data_type", order_by_count = FALSE) +
   scale_y_continuous(n.breaks = 10)
+```
+
+```{r, eval =T}
+data_unnested <- unnest_string_var(df, "Data_type")
+print_tables(data_unnested, 
+             "Data_type", 
+             top_count = 10, 
+             title = "Use of structured and unstructured data")
+```
+
+
+\newpage
+## Structured and unstructured data types
+
+```{r, fig.height=7}
+# Structured data types. 
+structured_data_use <- df %>% 
+  filter(Structured == 1) %>%
+  filter(Competition_data_name == "")
+
+structured_data_use_unnested <- unnest_string_var(structured_data_use, "Structured_data_type")
+
+p1 <- horizontal_bar(structured_data_use_unnested, 
+                     "Structured_data_type_unnested", 
+                     string_wrap = 20, 
+                     restrict_count = TRUE, 
+                     color_grid = color_panel <- pal_simpsons()(8), # Set the color
+                     title = "Structured data type", 
+                     ylim = 60, 
+                     label_text = TRUE,
+                     ylab = "Number of articles") 
+
+print_multiple_items(structured_data_use_unnested, "structured data types")
+
+# Unstructured data types.
+unstructured_data_use <- df %>% 
+  filter(Unstructured == 1) %>%
+  filter(Competition_data_name == "")
+
+unstructured_data_use <- unnest_string_var(unstructured_data_use, "Unstructured_data_type")
+
+p2 <- horizontal_bar(unstructured_data_use, 
+                     "Unstructured_data_type_unnested", 
+                     string_wrap = 20, 
+                     restrict_count = TRUE, 
+                     color_grid = color_panel <- pal_simpsons()(12),
+                     title = "Clinical note type", 
+                     ylim = 60, 
+                     label_text = TRUE,
+                     ylab = "Number of articles")
+
+print_multiple_items(data_unnested, "unstructured data types")
+
+plot_grid(p1, p2, ncol = 1, align = "v", axis = "l", labels = c('(a)', '(b)')) 
+```
+
+
+
+
+\newpage
+## Terminologies
+
+```{r}
+term_unnested <- unnest_string_var(df, "Terminology")
+term_unnested <- unnest_string_var(term_unnested, "Terminology_unnested")
+
+print_multiple_items(term_unnested, "terminologies")
+
+print_tables(term_unnested, 
+             "Terminology_unnested_unnested", 
+             "ML_type", 
+             "Traditional", 
+             top_count = 20, 
+             restric_count = TRUE)
+```
+
+\clearpage
+## Natural language processing (NLP) software
+
+```{r}
+method_unnested <- unnest_string_var(df, "NLP_software")
+print_multiple_items(method_unnested, "NLP software")
+
+print_tables(method_unnested, 
+             "NLP_software_unnested", 
+             "ML_type", 
+             "Traditional", 
+             top_count = 10, 
+             restric_count = TRUE)
+```
+
+## Embeddings
+
+Embeddings were only used in deep supervised articles. 
+
+```{r}
+method_unnested <- unnest_string_var(deep_supervised, "Embedding_training_data")
+print_tables(method_unnested, "Embedding_training_data_unnested", top_count = 10)
+print_multiple_items(method_unnested, "embedding training data")
+
+method_unnested <- unnest_string_var(deep_supervised, "Embedding")
+print_tables(method_unnested, "Embedding_unnested", top_count = 10)
+print_multiple_items(method_unnested, "embedding training methods")
+```
+
+
+## Openly-available data
+
+```{r}
+method_unnested <- unnest_string_var(df, "Competition_data_name")
+print_multiple_items(method_unnested, "Competition data")
+
+print_tables(method_unnested, 
+             "Competition_data_name_unnested", 
+             "ML_type", 
+             "Traditional", 
+             top_count = 10, 
+             restric_count = FALSE, 
+             hold_pos = TRUE)
+```
+
+```{r, eval = F}
+stacked_bar(method_unnested %>% filter(Competition_data_name != ""), 
+            "Competition_data_name", 
+            "Traditional", 
+            string_wrap = 20)
+```
+
+
+```{r, eval = FALSE}
+df %>% filter(Competition_data_name != "") %>% nrow()
+```
+
+```{r}
+method_unnested <- unnest_string_var(df %>% filter(Competition_data_name == ""), "Data_source")
+
+open_data <- c("MIMIC-III database", "MTSamples database")
+method_unnested <- method_unnested %>% filter(Data_source_unnested %in% open_data)
+
+print_tables(method_unnested, 
+             "Data_source_unnested", 
+             "ML_type", 
+             "Traditional", 
+             top_count = 10, 
+             restric_count = FALSE)
+```
+
+
+## Private data sources and demographics reporting 
+
+```{r}
+print(paste(nrow(df %>% filter(Openly_available_data == 0)),
+             "articles did not use openly available data"))
+
+print(paste("Among these", nrow(df %>% filter(Openly_available_data == 0)),
+            "articles,",
+  nrow(df %>% filter(Openly_available_data == 0 & Reported_demographics == 1)),
+             "articles considered temporal phenotypes"))
+```
+
+
+## Institutions
+```{r}
+count_unnested <- unnest_string_var(df, "Country")
+print_tables(count_unnested, 
+             "Country_unnested", 
+             top_count = 10, 
+             restric_count = FALSE, 
+             hold_pos = TRUE)
+```
+
+## Data sources summary different ML paradigms
+\newpage
+```{r}
+print_summary_table(list(traditional_supervised, 
+                         deep_supervised, 
+                         semi_supervised,
+                         weakly_supervised, 
+                         un_supervised, 
+                         df)) 
+
+# Note: TSL = Traditional supervised learning.  
+# DSL = Deep supervised learning.  
+# SSL = Semi-supervised learning.  
+# WSL = Weakly-supervised learning.  
+# US = Unsupervised learning. 
+```
+
+
+
+
+
+
+# Validation and comparison
+
+## Traditonal supervised ML vs. rule-based
+
+```{r, fig.height=8}
+plot_validate_metrics(traditional_supervised, comparator = "rule", large_fig = FALSE)
+```
+
+## Deep supervised ML vs. traditional supervised ML
+
+```{r, fig.height = 8}
+plot_validate_metrics(deep_supervised, comparator = "deep", large_fig = FALSE)
+```
+
+```{r, eval = FALSE}
+### DL v.s. traditional ML that reported PPV and sensitivity
+dl_summary <- read.csv("../Data/dl_performance.csv")
+
+cal_deep_median(dl_summary, "AUROC")
+cal_deep_median(dl_summary, "Sensitivity")
+cal_deep_median(dl_summary, "PPV")
+```
+
+```{r, eval = FALSE}
+# Case 1: improvement on both sensitivity and ppv.
+ppv_summary <- ml_deep_metrics(dl_summary, "PPV") %>% filter(PPV != "")
+deep_ppv <- ppv_summary %>% filter(Method == "Deep supervised learning")
+trad_ppv <- ppv_summary %>% filter(Method == "Traditional supervised learning")
+
+sens_summary <- ml_deep_metrics(dl_summary, "Sensitivity") %>% filter(Sensitivity != "")
+deep_sens <- sens_summary %>% filter(Method == "Deep supervised learning")
+trad_sens <- sens_summary %>% filter(Method == "Traditional supervised learning")
+
+sens_improve <- deep_sens %>% filter(diff >= 0)
+ppv_improve <- deep_ppv %>% filter(diff >= 0)
+
+both_improvement <- sens_improve %>% inner_join(ppv_improve, by = "Study1")
+
+# Median improve in sensitivity. 
+median(both_improvement$diff.x)
+deep <- both_improvement$Sensitivity
+trad <- trad_sens %>% filter(Study1 %in% both_improvement$Study1) 
+trad <- trad$Sensitivity
+
+library(nonpar)
+mediantest(x = deep, y = trad, exact=TRUE)
+
+# Median improve in PPV.
+median(both_improvement$diff.y)
+deep <- both_improvement$PPV
+trad <- trad_ppv %>% filter(Study1 %in% both_improvement$Study1) 
+trad <- trad$PPV
+
+mediantest(x = deep, y = trad, exact=TRUE)
+```
+
+```{r, eval = FALSE}
+# Case 2: improvement on only sensitivity.
+ppv_decrease <- deep_ppv %>% filter(diff < 0)
+sens_improvement <- sens_improve %>% inner_join(ppv_decrease, by = "Study1")
+
+# Median improve in sensitivity. 
+median(sens_improvement$diff.x)
+
+deep <- sens_improvement$Sensitivity
+trad <- trad_sens %>% filter(Study1 %in% sens_improvement$Study1) 
+trad <- trad$Sensitivity
+mediantest(x = deep, y = trad, exact=TRUE)
+```
+
+```{r, eval = FALSE}
+# Case 3: improvement on only ppv.
+sens_decrease <- deep_sens %>% filter(diff < 0)
+ppv_improvement <- ppv_improve %>% inner_join(sens_decrease, by = "Study1")
+
+# Median improve in sensitivity. 
+median(ppv_improvement$diff.x)
+
+deep <- ppv_improvement$PPV
+trad <- trad_ppv %>% filter(Study1 %in% ppv_improvement$Study1) 
+trad <- trad$PPV
+mediantest(x = deep, y = trad, exact=TRUE)
+```
+
+```{r, eval = FALSE}
+# Stratified by different networks types.
+dl_summary <- unnest_string_var(dl_summary, "DL_method")
+rnn <- dl_summary %>% filter(DL_method_unnested == "RNN")
+cnn <- dl_summary %>% filter(DL_method_unnested == "CNN")
+bert <- dl_summary %>% filter(DL_method_unnested == "BERT")
+ffnn <- dl_summary %>% filter(DL_method_unnested == "FFNN")
+```
+
+```{r, eval = FALSE}
+# RNN.
+cal_deep_median(rnn, "AUROC")
+cal_deep_median(rnn, "Sensitivity")
+cal_deep_median(rnn, "PPV")
+```
+
+```{r, eval = FALSE}
+# CNN.
+cal_deep_median(cnn, "AUROC")
+cal_deep_median(cnn, "Sensitivity")
+cal_deep_median(cnn, "PPV")
+```
+
+```{r, eval = FALSE}
+# BERT
+cal_deep_median(bert, "AUROC")
+cal_deep_median(bert, "Sensitivity")
+cal_deep_median(bert, "PPV")
+```
+
+
+```{r, eval = FALSE}
+# FFNN
+cal_deep_median(ffnn, "AUROC")
+cal_deep_median(ffnn, "Sensitivity")
+cal_deep_median(ffnn, "PPV")
+```
+
+
+```{r, fig.height = 8, eval = FALSE}
+## Weakly-supervised ML vs. rule-based algorithms
+plot_validate_metrics(weakly_supervised, comparator = "weakly", large_fig = FALSE)
+```
+
+
+```{r, fig.height=8, eval = FALSE}
+## Weakly-supervised ML vs. traditional supervised ML
+plot_validate_metrics(weakly_supervised, comparator = "weakly vs supervised", large_fig = FALSE)
+```
+
+# Model performance metric reporting
+
+```{r}
+method_unnested <- unnest_string_var(df %>% filter(ML_type != "Unsupervised"), "Model_performance_metrics")
+print_tables(method_unnested, 
+             "Model_performance_metrics_unnested", 
+             "ML_type", 
+             "Traditional", 
+             top_count = 20, 
+             restric_count = TRUE, 
+             col_width = 4.6)
+```
+
+```{r, eval= FALSE}
+# Report at least one of the precision, recall, F-score
+method_unnested %>%
+  filter(Model_performance_metrics_unnested %in% c("Precision", "Recall", "F-score")) %>%
+  group_by(PMID) %>%
+  summarise(n = n()) %>%
+  nrow()
+
+# Report at least one of the precision, recall, F-score
+method_unnested %>%
+  filter(Model_performance_metrics_unnested %in% c("Brier score", "Calibration plots")) %>%
+  group_by(PMID) %>%
+  summarise(n = n()) 
 ```
