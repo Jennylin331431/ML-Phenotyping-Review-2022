@@ -1,7 +1,7 @@
 ---
 title: "Article exclusion"
-author: "Siyue Yang, Jessica Gronsbell"
-date: "Last Updated: 10/10/2022"
+author: " "
+date: "Last Updated: 10/19/2022"
 output: pdf_document
 knit: (function(inputFile, encoding) {
       out_dir <- "../Reports";
