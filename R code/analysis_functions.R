@@ -1,8 +1,3 @@
-# --------------------------------- R packages --------------------------------- #
-
-library(splitstackshape)
-library(janitor)
-
 # --------------------------------- Plotting --------------------------------- #
 
 # Function for stacked bar plot
@@ -506,7 +501,141 @@ unnest_string_var <- function(df, var) {
 
 }
 
+
+# Function to separate phenotype and validation metrics by pair.
+# ------------------------------------------------------------ #
+# df: dataframe
+# vars: vectors of length 2 with variable names to unnest;
+# "phenotype" is the first argument
+# utility: whether to split by validation metric or phenotype
+unnest_two_string <- function(df, vars, utility = "validation") {
+
+  # Check if there is a paper with record of multiple values of a single phenotype.
+  # e.g. PMID 29447188 has 10 phenotypes and 10 sensitivity values.
+
+  pheno_view <- unnest_string_var(df, "Phenotype") %>%
+    group_by(PMID) %>%
+    summarise(n_pheno = n())
+
+  metric_view <- unnest_string_var(df, vars[2]) %>%
+    group_by(PMID) %>%
+    summarise(n_metric = n())
+
+  overview <- merge(pheno_view, metric_view, all = TRUE)
+
+  # Split multiple values and matched them with the corresponding phenotype.
+  pmid_split <- overview %>% filter(n_metric > 1) %>% select(PMID) %>% pull()
+  df_split <- df %>% filter(PMID %in% pmid_split)
+  df_remain <- subset(df, !(PMID %in% pmid_split))
+
+  if (utility == "validation") {
+
+    # If there is no record with multiple values for a single metric,
+    # return itself.
+
+    if (nrow(df_split) == 0) {
+      res <- df_remain %>% select(PMID,
+                                  Best_performing_model,
+                                  Phenotype,
+                                  !!sym(vars[2])) %>% na.omit()
+
+      # Otherwise, split the validation metrics by phenotypes.
+
+    } else {
+
+      for (var in vars) {
+
+        # From library splitstackshape.
+        df_split <- cSplit(df_split, c(var), sep = ";")
+
+      }
+
+      n_pheno <- dim(df_split %>%
+                       select(starts_with(paste0(vars[1], "_"))))[2]
+      n_metric <- dim(df_split %>%
+                        select(starts_with(paste0(vars[2], "_"))))[2]
+
+      end_pname <- paste0("_0", c(1:9))
+      end_pname <- c(end_pname, paste0("_", c(10:100)))
+      end_mname <- paste0("_", c(1:100))
+
+      res <- c()
+
+      for (i in c(1:n_pheno)) {
+
+        tmp <- df_split %>% select(PMID,
+                                   Best_performing_model,
+                                   ends_with(end_pname[i]),
+                                   ends_with(end_mname[i]))
+
+        if (dim(tmp)[2] != 4) break
+
+        colnames(tmp) <- c("PMID", "Best_performing_model", vars)
+        res <- rbind(res, tmp)
+
+      }
+
+      df_remain[, vars[2]] <- as.numeric(df_remain[, vars[2]])
+
+      res <- df_remain %>% select(PMID, Best_performing_model,
+                                  Phenotype, !!sym(vars[2])) %>%
+        bind_rows(res) %>%
+        na.omit()
+    }
+
+  } else {
+
+    # If there is no record with multiple values for a single, return itself.
+
+    if (nrow(df_split) == 0) {
+      res <- df_remain %>% select(PMID, Phenotype, !!sym(vars[2])) %>% na.omit()
+
+      # Otherwise, split the by phenotypes.
+
+    } else {
+
+      # From library splitstackshape.
+      for (var in vars) {
+
+        # From library splitstackshape.
+        df_split <- cSplit(df_split, c(var), sep = ";")
+
+      }
+
+      n_pheno <- dim(df_split %>% select(starts_with(paste0(vars[1], "_"))))[2]
+      n_metric <- dim(df_split %>% select(starts_with(paste0(vars[2], "_"))))[2]
+
+      end_pname <- paste0("_0", c(1:9))
+      end_pname <- c(end_pname, paste0("_", c(10:25)))
+      end_mname <- paste0("_", c(1:25))
+
+      res <- c()
+      for (i in c(1:n_pheno)) {
+        tmp <- df_split %>% select(PMID, ends_with(end_pname[i]), ends_with(end_mname[i]))
+
+        colnames(tmp) <- c("PMID", vars)
+        res <- rbind(res, tmp)
+      }
+
+      res2 <- unnest_string_var(df_remain, "Phenotype") %>%
+        select(PMID, Phenotype_unnested, !!sym(vars[2]))
+
+      colnames(res2) <- c("PMID", vars)
+
+      res <- res %>% bind_rows(res2) %>% na.omit()
+
+    }
+  }
+
+  return(res)
+
+}
+
+
 # Function to unnest two column with strings separated by a semi-colon.
+#---------------------------------------------------------------------#
+# df: dataframe
+# comparator: comparator approach
 unnest_validate_string <- function(df, comparator = "deep") {
 
   # Specifically for validation columns, they are recorded in paired columns by
@@ -558,380 +687,6 @@ unnest_validate_string <- function(df, comparator = "deep") {
   res <- res[!is.na(res$Best_performing_model),]
   #res <- res[!is.na(res$Data_source), ]
   return(res)
-
-}
-
-
-# Figure to plot validation metrics.
-plot_validate_metrics <- function(df, comparator = "rule", large_fig = FALSE) {
-
-  label_size <- if_else(large_fig, 15, 10)
-
-  if (comparator == "rule") {
-
-    # # Arrange by sensitivity.
-    # df_sens <- ml_rule_metrics(df, "Sensitivity") %>%
-    #   select(Phenotype, diff, ML_better) %>%
-    #   unique() %>%
-    #   arrange(ML_better, -diff)
-    # df$Phenotype <- factor(df$Phenotype, levels = df_sens$Phenotype)
-
-    df <- read.csv("../data/rule_performance.csv")
-    df_ML_better <- df %>% filter(Category == "ML_better")
-    df_rule_better <- df %>% filter(Category == "Rule_better")
-    df_ppv_better <- df %>% filter(Category == "PPV_better")
-    df_either <- df %>% filter(Category == "Either")
-
-    g1 <- plot_rule_compare(df_ML_better, large_fig = large_fig)
-    g2 <- plot_rule_compare(df_rule_better, large_fig = large_fig)
-    g4 <- plot_rule_compare(df_ppv_better, large_fig = large_fig, legend = TRUE)
-    g5 <- plot_rule_compare(df_either, large_fig = large_fig)
-
-    plot_grid(g1, g2, g5, g4,
-              nrow = 4,
-              align = "v",
-              labels = c('(a)', '(b)', '(c)', '(d)'),
-              label_size = label_size,
-              rel_heights = c(3, 2, 2, 3))
-
-  } else if (comparator == "deep") {
-
-    #df <- get_deep_metrics(df)
-    df <- read.csv("../data/dl_performance.csv")
-
-    # Arrange by sensitivity.
-    df_sens <- ml_deep_metrics(df, "Sensitivity") %>%
-      select(Phenotype_ref, diff, DL_better) %>%
-      unique() %>%
-      arrange(DL_better, -diff)
-
-    # Set levels as the decreased sensitivity.
-    df$Phenotype_ref <- factor(df$Phenotype_ref, levels = df_sens$Phenotype_ref)
-
-    df_sens_better <- df %>% filter(Category == "Sens_better")
-    df_ppv_better <- df %>% filter(Category == "PPV_better")
-    df_ML_better <- df %>% filter(Category == "ML_better")
-    df_DL_better <- df %>% filter(Category == "DL_better")
-
-    g1 <- plot_deep_compare(df_DL_better, large_fig = large_fig)
-    g2 <- plot_deep_compare(df_ML_better, large_fig = large_fig)
-    g3 <- plot_deep_compare(df_sens_better, large_fig = large_fig)
-    g4 <- plot_deep_compare(df_ppv_better, large_fig = large_fig, legend = TRUE)
-
-    plot_grid(g1, g2, g3, g4,
-              nrow = 4,
-              align = "v",
-              labels = c('(a)', '(b)', '(c)', '(d)'),
-              label_size = label_size,
-              greedy = TRUE,
-              rel_heights = c(15, 3, 7, 6))
-
-  } else if (comparator == "weakly") {
-
-    df <- get_weakly_metrics(df, "rule")
-
-    # Arrange by sensitivity.
-    df_sens <- ml_rule_metrics(df, "Sensitivity") %>%
-      dplyr::select(Phenotype, rule, diff, ML_better) %>% unique() %>% arrange(-abs(diff))
-
-    df$Phenotype <- factor(df$Phenotype, levels = df_sens$Phenotype)
-
-    comparable <- c("Metastatic breast cancer",
-                    "Rheumatoid arthritis\n (PheProb)",
-                    "Obesity\n (APHRODITE)",
-                    "Fall\n (NimbleMiner)",
-                    "Glaucoma\n (APHRODITE)",
-                    "Epilepsy\n (APHRODITE)",
-                    "Type 2 diabetes mellitus\n (APHRODITE)",
-                    "Cataracts\n (APHRODITE)",
-                    "Venous thromboembolism\n (APHRODITE)",
-                    "Heart failure\n (APHRODITE)",
-                    "Peripheral arterial disease\n (APHRODITE)")
-
-    df_ML_better <- df %>% filter(!(Phenotype %in% comparable))
-    df_comparable <- df %>% filter(Phenotype %in% comparable)
-
-    g1 <- plot_rule_compare(df_ML_better, comparison = "weakly", large_fig = large_fig)
-    g3 <- plot_rule_compare(df_comparable, comparison = "weakly", large_fig = large_fig, legend = TRUE)
-
-    plot_grid(g1, g3,
-              nrow = 2,
-              align = "v",
-              labels = c('(a)', '(b)'),
-              rel_heights = c(5, 5))
-
-  } else {
-
-    #weakly v.s. traditional
-    df <- get_weakly_metrics(df, "ml")
-
-    # Arrange by sensitivity.
-    df_auc <- weakly_rule_metrics(df, "AUROC") %>%
-      dplyr::select(Phenotype, diff) %>% unique() %>% arrange(-(diff))
-
-    df$Phenotype <- factor(df$Phenotype, levels = df_auc$Phenotype)
-
-    plot_metrics(df,
-                 comparison = comparator,
-                 study = "Phenotype",
-                 metric = "AUROC",
-                 large_fig,
-                 xlim = 0.5) +
-      theme(legend.position = "bottom")
-
-  }
-
-}
-
-# Figure to plot ML vs rule across all metrics.
-plot_rule_compare <- function(df,
-                              comparison = "rule",
-                              study = "Phenotype_ref",
-                              large_fig = FALSE,
-                              legend = FALSE) {
-
-  # Remove y-axis label and text for graph other than sensitivity.
-  theme_type <- theme(axis.title.y = element_blank(),
-                      axis.text.y = element_blank(),
-                      axis.ticks.y = element_blank())
-
-  legend_pos = if_else(legend, "bottom", "none")
-
-  p1 <- plot_metrics(df, comparison, study, metric = "Sensitivity", large_fig)
-  p2 <- plot_metrics(df, comparison, study, metric = "Specificity", large_fig) + theme_type
-  p3 <- plot_metrics(df, comparison, study, metric = "PPV", large_fig) +
-    theme(legend.position = legend_pos) +
-    theme_type
-  p4 <- plot_metrics(df, comparison, study, metric = "NPV", large_fig) + theme_type
-  p5 <- plot_metrics(df, comparison, study, metric = "AUROC", large_fig) + theme_type
-
-  egg::ggarrange(p1,p2,p3,p4,p5, nrow = 1, draw = FALSE)
-
-}
-
-# Figure to plot ML vs DL across all metrics.
-plot_deep_compare <- function(df,
-                              comparison = "deep",
-                              study = "Phenotype_ref",
-                              large_fig = FALSE,
-                              legend = FALSE) {
-
-  # Remove y-axis label and text for graph other than sensitivity.
-  theme_type <- theme(axis.title.y = element_blank(),
-                      axis.text.y = element_blank(),
-                      axis.ticks.y = element_blank())
-
-  legend_pos = if_else(legend, "bottom", "none")
-
-  p1 <- plot_metrics(df, comparison, study, "Sensitivity", large_fig = large_fig)
-  p4 <- plot_metrics(df, comparison, study, "PPV", large_fig = large_fig) + theme_type
-  p5 <- plot_metrics(df, comparison, study, "AUROC", large_fig = large_fig) + theme_type
-  p2 <- plot_metrics(df, comparison, study, "Specificity", large_fig = large_fig) +
-    theme(legend.position = legend_pos) +
-    theme_type
-
-  egg::ggarrange(p1, p2, p4, p5, nrow = 1, draw = FALSE)
-
-}
-
-plot_metrics <- function(df,
-                         comparison = "rule",
-                         study = "Phenotype",
-                         metric = "Sensitivity",
-                         large_fig = FALSE,
-                         xlim = 0.01) {
-
-  # Remove all the metrics are NAs.
-  #df1 <- apply(df[, c(which(colnames(df) ==
-  #"Best_performing_Sensitivity")):ncol(df)], 2, as.numeric)
-
-  if (comparison == "rule") {
-
-    df <- ml_rule_metrics(df, metric)
-
-  } else if (comparison == "weakly") {
-
-    df <- weakly_metrics(df, metric)
-
-  } else if (comparison == "deep") {
-
-    # Check missingness and fill the NA.
-    if (typeof(df) == "double") {
-
-      df1 <- t(data.frame(df))
-      missing_index <- rowMeans(is.na(df1))
-
-      if (sum(missing_index == 1) > 0) {
-
-        df <- df[-which(missing_index == 1), ]
-
-      }
-
-    }
-
-    df <- ml_deep_metrics(df, metric)
-
-  } else {
-
-    df <- weakly_rule_metrics(df, metric)
-
-  }
-
-  title_size <- if_else(large_fig, 18, 8)
-  text_size <- if_else(large_fig, 10, 5)
-  legend_size <- if_else(large_fig, 15, 7)
-  point_size <- if_else(large_fig, 3, 2)
-  vjust_size <- if_else(large_fig, 0.5, 0.25)
-
-  df %>%
-    ggplot(aes(x = !!sym(study),
-               y = as.numeric(!!sym(metric)),
-               color = Method)) +
-    scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
-    scale_y_continuous(limits = c(xlim, 1),
-                       labels = function(y) label_parsed(paste0(y*100))) +
-    scale_color_jama() +
-    coord_flip() +
-    labs(x = "", y = "", title = metric) +
-    theme_bw() +
-    geom_point(size = point_size) +
-    theme(legend.position = "none",
-          plot.title = element_text(size = title_size, hjust = 0.5, face="bold"),
-          axis.title.x = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.text.x = element_text(size = text_size, color = "black"),
-          axis.text.y = element_text(size = legend_size, vjust = vjust_size),
-          legend.title = element_blank(),
-          legend.text = element_text(size = legend_size))
-
-}
-
-# Utility function to plot supervised ML vs rule for one metric.
-ml_rule_metrics <- function(df, metric = "Sensitivity") {
-
-  metric_best <- paste0("Best_performing_", metric)
-  metric_ml <- paste0("Best_comparator_traditional_", metric)
-  metric_rule <- paste0("Best_comparator_Rule_", metric)
-
-  df %>%
-    mutate(`Traditional supervised learning` = case_when(
-      str_detect(Best_performing_model, "Traditional ML") ~
-        as.numeric(!!sym(metric_best)),
-      TRUE ~ as.numeric(!!sym(metric_ml)))) %>%
-    mutate(`Rule-based` = case_when(
-      str_detect(Best_performing_model, "Rule-based") ~
-        as.numeric(!!sym(metric_best)),
-      TRUE ~ as.numeric(!!sym(metric_rule)))) %>%
-    mutate(diff = `Traditional supervised learning` - `Rule-based`) %>%
-    mutate(ML_better = diff > 0) %>%
-    mutate(rule = `Rule-based`) %>%
-    pivot_longer(cols = c(`Traditional supervised learning`, `Rule-based`),
-                 names_to = "Method",
-                 values_to = metric) %>%
-    dplyr::select(Study1,
-                  Study2,
-                  PMID,
-                  Phenotype,
-                  Phenotype_ref,
-                  rule,
-                  diff,
-                  ML_better,
-                  !!sym(metric),
-                  Method) %>%
-    mutate_if(~ all(. %in% c(0, NA)), ~ replace(., is.na(.), 0))
-
-}
-
-# Utility function to plot supervised ML vs rule for one metric.
-weakly_metrics <- function(df, metric = "Sensitivity") {
-
-  metric_best <- paste0("Best_performing_", metric)
-  metric_ml <- paste0("Best_comparator_traditional_", metric)
-  metric_rule <- paste0("Best_comparator_Rule_", metric)
-
-  df %>%
-    filter(Best_performing_model != "") %>%
-    mutate(`Weakly-supervised learning` = case_when(
-      str_detect(Best_performing_model, "Traditional ML") ~
-        as.numeric(!!sym(metric_best)),
-      TRUE ~ as.numeric(!!sym(metric_ml)))) %>%
-    mutate(`Rule-based` = case_when(str_detect(
-      Best_performing_model, "Rule-based") ~ as.numeric(!!sym(metric_best)),
-      TRUE ~ as.numeric(!!sym(metric_rule)))) %>%
-    mutate(diff = `Weakly-supervised learning` - `Rule-based`) %>%
-    mutate(ML_better = diff > 0) %>%
-    mutate(rule = `Rule-based`) %>%
-    pivot_longer(cols = c(`Weakly-supervised learning`, `Rule-based`),
-                 names_to = "Method",
-                 values_to = metric) %>%
-    dplyr::select(Study1,
-                  Study2,
-                  PMID,
-                  Phenotype,
-                  rule,
-                  diff,
-                  ML_better,
-                  !!sym(metric),
-                  Method) %>%
-    mutate_if(~ all(. %in% c(0, NA)), ~ replace(., is.na(.), 0))
-
-}
-
-# Utility function to plot supervised ML vs rule for one metric.
-weakly_rule_metrics <- function(df, metric = "Sensitivity") {
-
-  metric_best <- paste0("Best_performing_", metric)
-  metric_ml <- paste0("Best_comparator_traditional_", metric)
-
-  df %>%
-    mutate(`Weakly-supervised learning` = as.numeric(!!sym(metric_best))) %>%
-    mutate(`Traditional supervised learning` = as.numeric(!!sym(metric_ml))) %>%
-    mutate(diff = `Weakly-supervised learning`-`Traditional supervised learning`) %>%
-    mutate(ML_better = diff > 0) %>%
-    pivot_longer(cols = c(`Weakly-supervised learning`, `Traditional supervised learning`),
-                 names_to = "Method",
-                 values_to = metric) %>%
-    dplyr::select(Phenotype,
-                  diff,
-                  ML_better,
-                  !!sym(metric),
-                  Method) %>%
-    mutate_if(~ all(. %in% c(0, NA)), ~ replace(., is.na(.), 0))
-
-}
-
-# Utility function to plot ML vs DL for one metric.
-ml_deep_metrics <- function(df, metric = "Sensitivity") {
-
-  metric_best <- paste0("Best_performing_", metric)
-  metric_ml <- paste0("Best_comparator_traditional_", metric)
-  metric_deep <- paste0("Best_comparator_DL_", metric)
-
-  df %>%
-    filter(Best_performing_model != "") %>%
-    mutate(`Deep supervised learning` = case_when(
-      str_detect(Best_performing_model, "DL") ~
-        as.numeric(!!sym(metric_best)),
-      TRUE ~ as.numeric(!!sym(metric_deep)))) %>%
-    mutate(`Traditional supervised learning` = case_when(
-      str_detect(Best_performing_model, "Traditional ML") ~
-        as.numeric(!!sym(metric_best)),
-      TRUE ~ as.numeric(!!sym(metric_ml)))) %>%
-    mutate(diff = `Deep supervised learning`-`Traditional supervised learning`) %>%
-    mutate(DL_better = diff > 0) %>%
-    pivot_longer(cols = c(`Traditional supervised learning`,
-                          `Deep supervised learning`),
-                 names_to = "Method",
-                 values_to = metric) %>%
-    dplyr::select(Study1,
-                  Study2,
-                  Phenotype,
-                  Phenotype_ref,
-                  diff,
-                  DL_better,
-                  !!sym(metric),
-                  Method) %>%
-    mutate_if(~ all(. %in% c(0, NA)), ~ replace(., is.na(.), 0))
 
 }
 
@@ -1027,154 +782,3 @@ print_summary_table <- function(df) {
 
 }
 
-
-
-
-
-# Function to calculate the median improvement of DL models.
-cal_deep_median <- function(df, metrics = "AUROC") {
-
-  perf_summary <- ml_deep_metrics(df, metrics) %>% filter(DL_better != "")
-
-  deep <- perf_summary %>%
-    filter(Method == "Deep supervised learning") %>%
-    select(!!sym(metrics)) %>% pull()
-
-  trad <- perf_summary %>%
-    filter(Method == "Traditional supervised learning") %>%
-    select(!!sym(metrics)) %>% pull()
-
-  n_pheno <- length(unique(perf_summary$Study1))
-  n_study <- length(unique(str_extract(perf_summary$Study1, "[0-9]+$")))
-
-  # library(nonpar)
-  # print(mediantest(x = deep, y = trad, exact=TRUE))
-
-  print(paste(n_study, "articles studied", n_pheno, "phenotypes, and reported",
-              metrics, "with median", round(median(deep - trad),3)))
-
-}
-
-
-
-# Function to separate phenotype and validation metrics by pair.
-unnest_two_string <- function(df, vars, utility = "validation") {
-
-  # Check if there is a paper with record of multiple values of a single phenotype.
-  # e.g. PMID 29447188 has 10 phenotypes and 10 sensitivity values.
-
-  pheno_view <- unnest_string_var(df, "Phenotype") %>%
-    group_by(PMID) %>%
-    summarise(n_pheno = n())
-
-  metric_view <- unnest_string_var(df, vars[2]) %>%
-    group_by(PMID) %>%
-    summarise(n_metric = n())
-
-  overview <- merge(pheno_view, metric_view, all = TRUE)
-
-  # Split multiple values and matched them with the corresponding phenotype.
-  pmid_split <- overview %>% filter(n_metric > 1) %>% select(PMID) %>% pull()
-  df_split <- df %>% filter(PMID %in% pmid_split)
-  df_remain <- subset(df, !(PMID %in% pmid_split))
-
-  if (utility == "validation") {
-
-    # If there is no record with multiple values for a single metric,
-    # return itself.
-
-    if (nrow(df_split) == 0) {
-      res <- df_remain %>% select(PMID,
-                                  Best_performing_model,
-                                  Phenotype,
-                                  !!sym(vars[2])) %>% na.omit()
-
-      # Otherwise, split the validation metrics by phenotypes.
-
-    } else {
-
-      for (var in vars) {
-
-        # From library splitstackshape.
-        df_split <- cSplit(df_split, c(var), sep = ";")
-
-      }
-
-      n_pheno <- dim(df_split %>% select(starts_with(paste0(vars[1], "_"))))[2]
-      n_metric <- dim(df_split %>% select(starts_with(paste0(vars[2], "_"))))[2]
-
-      end_pname <- paste0("_0", c(1:9))
-      end_pname <- c(end_pname, paste0("_", c(10:100)))
-      end_mname <- paste0("_", c(1:100))
-
-      res <- c()
-
-      for (i in c(1:n_pheno)) {
-
-        tmp <- df_split %>% select(PMID,
-                                   Best_performing_model,
-                                   ends_with(end_pname[i]),
-                                   ends_with(end_mname[i]))
-
-        if (dim(tmp)[2] != 4) break
-
-        colnames(tmp) <- c("PMID", "Best_performing_model", vars)
-        res <- rbind(res, tmp)
-
-      }
-
-      df_remain[, vars[2]] <- as.numeric(df_remain[, vars[2]])
-
-      res <- df_remain %>% select(PMID, Best_performing_model,
-                                  Phenotype, !!sym(vars[2])) %>%
-        bind_rows(res) %>%
-        na.omit()
-    }
-
-  } else {
-
-    # If there is no record with multiple values for a single, return itself.
-
-    if (nrow(df_split) == 0) {
-      res <- df_remain %>% select(PMID, Phenotype, !!sym(vars[2])) %>% na.omit()
-
-      # Otherwise, split the by phenotypes.
-
-    } else {
-
-      # From library splitstackshape.
-      for (var in vars) {
-
-        # From library splitstackshape.
-        df_split <- cSplit(df_split, c(var), sep = ";")
-
-      }
-
-      n_pheno <- dim(df_split %>% select(starts_with(paste0(vars[1], "_"))))[2]
-      n_metric <- dim(df_split %>% select(starts_with(paste0(vars[2], "_"))))[2]
-
-      end_pname <- paste0("_0", c(1:9))
-      end_pname <- c(end_pname, paste0("_", c(10:25)))
-      end_mname <- paste0("_", c(1:25))
-
-      res <- c()
-      for (i in c(1:n_pheno)) {
-        tmp <- df_split %>% select(PMID, ends_with(end_pname[i]), ends_with(end_mname[i]))
-
-        colnames(tmp) <- c("PMID", vars)
-        res <- rbind(res, tmp)
-      }
-
-      res2 <- unnest_string_var(df_remain, "Phenotype") %>%
-        select(PMID, Phenotype_unnested, !!sym(vars[2]))
-
-      colnames(res2) <- c("PMID", vars)
-
-      res <- res %>% bind_rows(res2) %>% na.omit()
-
-    }
-  }
-
-  return(res)
-
-}

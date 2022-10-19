@@ -28,6 +28,8 @@ library(gridExtra)
 library(ggvenn)
 library(ggpattern)
 library(cowplot)
+library(splitstackshape)
+library(janitor)
 
 # Functions for analysis
 source('analysis_functions.R')
@@ -447,132 +449,21 @@ plot_validate_metrics(traditional_supervised,
                       large_fig = FALSE)
 ```
 
-## Deep supervised ML vs. traditional supervised ML
+## Weakly-supervised ML vs. rule-based algorithms
+```{r, fig.height = 8}
+plot_validate_metrics(weakly_supervised, comparator = "weakly", large_fig = FALSE)
+```
 
+## Weakly-supervised ML vs. traditional supervised ML
+```{r, fig.height=8}
+plot_validate_metrics(weakly_supervised, comparator = "weakly vs supervised", large_fig = FALSE)
+```
+
+## Deep supervised ML vs. traditional supervised ML
 ```{r, fig.height = 8}
 plot_validate_metrics(deep_supervised, 
                       comparator = "deep", 
                       large_fig = FALSE)
-```
-
-```{r, eval = FALSE}
-### DL v.s. traditional ML that reported PPV and sensitivity
-dl_summary <- read.csv("../Data/dl_performance.csv")
-
-cal_deep_median(dl_summary, "AUROC")
-cal_deep_median(dl_summary, "Sensitivity")
-cal_deep_median(dl_summary, "PPV")
-```
-
-```{r, eval = FALSE}
-# Case 1: improvement on both sensitivity and ppv.
-ppv_summary <- ml_deep_metrics(dl_summary, "PPV") %>% filter(PPV != "")
-deep_ppv <- ppv_summary %>% filter(Method == "Deep supervised learning")
-trad_ppv <- ppv_summary %>% filter(Method == "Traditional supervised learning")
-
-sens_summary <- ml_deep_metrics(dl_summary, "Sensitivity") %>% filter(Sensitivity != "")
-deep_sens <- sens_summary %>% filter(Method == "Deep supervised learning")
-trad_sens <- sens_summary %>% filter(Method == "Traditional supervised learning")
-
-sens_improve <- deep_sens %>% filter(diff >= 0)
-ppv_improve <- deep_ppv %>% filter(diff >= 0)
-
-both_improvement <- sens_improve %>% inner_join(ppv_improve, by = "Study1")
-
-# Median improve in sensitivity. 
-median(both_improvement$diff.x)
-deep <- both_improvement$Sensitivity
-trad <- trad_sens %>% filter(Study1 %in% both_improvement$Study1) 
-trad <- trad$Sensitivity
-
-library(nonpar)
-mediantest(x = deep, y = trad, exact=TRUE)
-
-# Median improve in PPV.
-median(both_improvement$diff.y)
-deep <- both_improvement$PPV
-trad <- trad_ppv %>% filter(Study1 %in% both_improvement$Study1) 
-trad <- trad$PPV
-
-mediantest(x = deep, y = trad, exact=TRUE)
-```
-
-```{r, eval = FALSE}
-# Case 2: improvement on only sensitivity.
-ppv_decrease <- deep_ppv %>% filter(diff < 0)
-sens_improvement <- sens_improve %>% inner_join(ppv_decrease, by = "Study1")
-
-# Median improve in sensitivity. 
-median(sens_improvement$diff.x)
-
-deep <- sens_improvement$Sensitivity
-trad <- trad_sens %>% filter(Study1 %in% sens_improvement$Study1) 
-trad <- trad$Sensitivity
-mediantest(x = deep, y = trad, exact=TRUE)
-```
-
-```{r, eval = FALSE}
-# Case 3: improvement on only ppv.
-sens_decrease <- deep_sens %>% filter(diff < 0)
-ppv_improvement <- ppv_improve %>% inner_join(sens_decrease, by = "Study1")
-
-# Median improve in sensitivity. 
-median(ppv_improvement$diff.x)
-
-deep <- ppv_improvement$PPV
-trad <- trad_ppv %>% filter(Study1 %in% ppv_improvement$Study1) 
-trad <- trad$PPV
-mediantest(x = deep, y = trad, exact=TRUE)
-```
-
-```{r, eval = FALSE}
-# Stratified by different networks types.
-dl_summary <- unnest_string_var(dl_summary, "DL_method")
-rnn <- dl_summary %>% filter(DL_method_unnested == "RNN")
-cnn <- dl_summary %>% filter(DL_method_unnested == "CNN")
-bert <- dl_summary %>% filter(DL_method_unnested == "BERT")
-ffnn <- dl_summary %>% filter(DL_method_unnested == "FFNN")
-```
-
-```{r, eval = FALSE}
-# RNN.
-cal_deep_median(rnn, "AUROC")
-cal_deep_median(rnn, "Sensitivity")
-cal_deep_median(rnn, "PPV")
-```
-
-```{r, eval = FALSE}
-# CNN.
-cal_deep_median(cnn, "AUROC")
-cal_deep_median(cnn, "Sensitivity")
-cal_deep_median(cnn, "PPV")
-```
-
-```{r, eval = FALSE}
-# BERT
-cal_deep_median(bert, "AUROC")
-cal_deep_median(bert, "Sensitivity")
-cal_deep_median(bert, "PPV")
-```
-
-
-```{r, eval = FALSE}
-# FFNN
-cal_deep_median(ffnn, "AUROC")
-cal_deep_median(ffnn, "Sensitivity")
-cal_deep_median(ffnn, "PPV")
-```
-
-
-```{r, fig.height = 8, eval = FALSE}
-## Weakly-supervised ML vs. rule-based algorithms
-plot_validate_metrics(weakly_supervised, comparator = "weakly", large_fig = FALSE)
-```
-
-
-```{r, fig.height=8, eval = FALSE}
-## Weakly-supervised ML vs. traditional supervised ML
-plot_validate_metrics(weakly_supervised, comparator = "weakly vs supervised", large_fig = FALSE)
 ```
 
 # Model performance metric reporting
