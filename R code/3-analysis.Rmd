@@ -37,7 +37,7 @@ source('analysis_functions.R')
 
 ```{r, eval = T}
 # Read in annotation file and include selected articles
-df_all <- read.csv("../Data/annotations050822.csv", skip = 1)
+df_all <- read.csv("../Data/article_charting_101722.csv", skip = 1)
 df <- df_all %>% filter(Include_FR_SY == 1)
 
 # Create variable indicating use of unstructured data
@@ -444,6 +444,7 @@ print_summary_table(list(traditional_supervised,
 ## Traditonal supervised ML vs. rule-based
 
 ```{r, fig.height=8}
+source("test.R")
 plot_validate_metrics(traditional_supervised,
                       comparator = "rule",
                       large_fig = FALSE)

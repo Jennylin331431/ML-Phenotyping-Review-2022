@@ -8,14 +8,15 @@ get_metrics <- function(df, comparator = "rule"){
   if (comparator == "rule") {
 
     df <- df %>% filter(Compare_with_rule_based != "")
+    df <- unnest_validate_string(df, comparator = "not deep")
 
   } else if (comparator == "traditional") {
 
     df <- df %>% filter(Best_comparator_traditional != "")
-
+    df <- unnest_validate_string(df, comparator = "deep")
   }
 
-  df <- unnest_validate_string(df, comparator = "not deep")
+
 
   df %>%
     unite("Study1", c(Phenotype, Data_source, PMID), sep = "\n", remove = FALSE) %>%
@@ -30,32 +31,60 @@ get_metrics <- function(df, comparator = "rule"){
 # baseline_method: String for column name of baseline method.
 # comparison_method: String ofr column name of comparison method.
 best_performing_model <- function(df, baseline_method,
-                                  comparison_method){
+                                  comparison_method,
+                                  metrics = "ALL"){
 
   df <- df %>% mutate_all(na_if, "")
 
-  df$baseline_sens_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_Sensitivity"))) >
-                                                      df %>% select(!!sym(paste0(comparison_method, "_Sensitivity")))) * 1
+  if(metrics == "ALL"){
 
-  df$baseline_ppv_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_PPV"))) >
-                                  df %>% select(!!sym(paste0(comparison_method, "_PPV")))) * 1
+    df$baseline_sens_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_Sensitivity"))) >
+                                    df %>% select(!!sym(paste0(comparison_method, "_Sensitivity")))) * 1
 
-  df$baseline_spec_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_Specificity"))) >
-                                  df %>% select(!!sym(paste0(comparison_method, "_Specificity")))) * 1
+    df$baseline_ppv_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_PPV"))) >
+                                   df %>% select(!!sym(paste0(comparison_method, "_PPV")))) * 1
 
-  df$baseline_npv_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_NPV"))) >
-                                 df %>% select(!!sym(paste0(comparison_method, "_NPV")))) * 1
+    df$baseline_spec_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_Specificity"))) >
+                                    df %>% select(!!sym(paste0(comparison_method, "_Specificity")))) * 1
 
-  df$baseline_auc_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_AUROC"))) >
-                                 df %>% select(!!sym(paste0(comparison_method, "_AUROC")))) * 1
+    df$baseline_npv_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_NPV"))) >
+                                   df %>% select(!!sym(paste0(comparison_method, "_NPV")))) * 1
 
-  df$baseline_all_better <- apply(df %>% select(baseline_sens_better,
+    df$baseline_auc_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_AUROC"))) >
+                                   df %>% select(!!sym(paste0(comparison_method, "_AUROC")))) * 1
+
+    df$baseline_all_better <- apply(df %>% select(baseline_sens_better,
                                                   baseline_ppv_better,
                                                   baseline_spec_better,
                                                   baseline_npv_better,
                                                   baseline_auc_better),
-                                  1, min,
-                                  na.rm = TRUE)
+                                    1, min,
+                                    na.rm = TRUE)
+  } else if (metrics == "deep"){
+
+    df$baseline_sens_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_Sensitivity"))) >
+                                    df %>% select(!!sym(paste0(comparison_method, "_Sensitivity")))) * 1
+
+    df$baseline_ppv_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_PPV"))) >
+                                   df %>% select(!!sym(paste0(comparison_method, "_PPV")))) * 1
+
+    df$baseline_spec_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_Specificity"))) >
+                                    df %>% select(!!sym(paste0(comparison_method, "_Specificity")))) * 1
+
+    df$baseline_auc_better <-  I(df %>% select(!!sym(paste0(baseline_method, "_AUROC"))) >
+                                   df %>% select(!!sym(paste0(comparison_method, "_AUROC")))) * 1
+
+    df$baseline_all_better <- apply(df %>% select(baseline_sens_better,
+                                                  baseline_ppv_better,
+                                                  baseline_spec_better,
+                                                  baseline_auc_better),
+                                    1, min,
+                                    na.rm = TRUE)
+
+    # Remove papers only reporting F-score.
+    #df <- df %>% filter(baseline_all_better != Inf)
+  }
+
 
   return(df)
 }
@@ -74,9 +103,8 @@ plot_validate_metrics <- function(df,
 
   if (comparator == "rule") {
 
-    # Get traditional ML modelts that compare to rule-based.
-    df_formatted <- get_metrics(traditional_supervised,
-                                "rule")
+    # Get traditional ML models that compare to rule-based.
+    df_formatted <- get_metrics(df, rule)
 
     df_ML_better <- best_performing_model(df_formatted %>%
       filter(Best_performing_model == "Traditional ML"),
@@ -93,32 +121,91 @@ plot_validate_metrics <- function(df,
     g1 <- plot_rule_compare(df_ML_better %>% filter(baseline_all_better == 1),
                             study = "Phenotype",
                             large_fig = large_fig)
-    g2 <- plot_rule_compare(df_ML_better %>% filter(baseline_all_better != 1 &
+
+    g2 <- plot_rule_compare(df_ML_better %>% filter(baseline_all_better != 1,
                                                       baseline_sens_better == 1,
-                                                    baseline_ppv_better == 1),
+                                                    (baseline_ppv_better == 1 | is.na(baseline_ppv_better))),
                             large_fig = large_fig)
+
 
     g3 <- plot_rule_compare(df_ML_better %>% filter(baseline_all_better != 1 &
-                                                      baseline_sens_better == 1,
-                                                    baseline_ppv_better == 0),
-                            large_fig = large_fig)
-    g4 <- plot_rule_compare(df_ML_better %>% filter(baseline_all_better != 1 &
                                                       baseline_sens_better == 0,
-                                                    baseline_ppv_better == 1),
+                                                    (baseline_ppv_better == 1 | is.na(baseline_ppv_better))) ,
                             large_fig = large_fig)
 
-    g5 <- plot_rule_compare(df_rule_better, large_fig = large_fig)
+    g4 <- plot_rule_compare(df_rule_better, large_fig = large_fig)
 
-    plot_grid(g1, g2, g3, g4, g5,
+    plot_grid(g1, g2, g3, g4,
               nrow = 5,
               align = "v",
-              labels = c('(a)', '(b)', '(c)', '(d)', '(e)'),
+              labels = c('(a)', '(b)', '(c)', '(d)'),
               label_size = label_size,
               rel_heights = c(3, 2, 2, 3))
 
   } else if (comparator == "deep") {
 
-    #df <- get_deep_metrics(df)
+    # Get traditional ML models that compare to rule-based.
+    df_formatted <- get_metrics(deep_supervised, "traditional")
+
+    df_ML_better_1 <- best_performing_model(df_formatted %>%
+                                            filter(Best_performing_model == "DL"),
+                                          "Best_performing",
+                                          "Best_comparator_traditional",
+                                          metrics = "deep")
+
+    df_ML_better_2 <- best_performing_model(df_formatted %>%
+                                            filter(Best_performing_model == "Rule-based"),
+                                          "Best_comparator_traditional",
+                                          "Best_comparator_DL",
+                                          metrics = "deep")
+
+    df_ML_better <- rbind(df_ML_better_1, df_ML_better_2)
+    df_ML_better[df_ML_better$PMID == 32548622, "Phenotype"] = "Social determinants of health"
+    df_ML_better[df_ML_better$PMID == 35007754, "Phenotype"] = "Acute care phenotypes"
+
+    df_rule_better <- best_performing_model(df_formatted %>%
+                                              filter(Best_performing_model == "Traditional ML"),
+                                            "Best_comparator_traditional",
+                                            "Best_performing",
+                                            metrics = "deep")
+
+    df_rule_better$Phenotype <- c("Chest injury", "Bleeding", "Fall")
+
+    g1 <- plot_deep_compare(df_ML_better %>% filter(baseline_all_better == 1),
+                            study = "Phenotype",
+                            large_fig = large_fig)
+
+    g2 <- plot_deep_compare(df_ML_better %>% filter(baseline_all_better != 1,
+                                                    baseline_sens_better == 1,
+                                                    (baseline_ppv_better == 0 | is.na(baseline_ppv_better))),
+                            study = "Phenotype",
+                            large_fig = large_fig)
+
+
+    g3 <- plot_deep_compare(df_ML_better %>% filter(baseline_all_better != 1 &
+                                                      baseline_sens_better == 0,
+                                                    (baseline_ppv_better == 1 | is.na(baseline_ppv_better))),
+                            study = "Phenotype",
+                            large_fig = large_fig)
+
+    g4 <- plot_deep_compare(df_rule_better, study = "Phenotype", large_fig = large_fig)
+
+    plot_grid(g1, g2, g3, g4,
+              nrow = 4,
+              align = "v",
+              labels = c('(a)', '(b)', '(c)', '(d)'),
+              label_size = label_size,
+              greedy = TRUE,
+              rel_heights = c(15, 7, 6, 6))
+
+
+
+
+
+
+
+
+     #df <- get_deep_metrics(df)
     df <- read.csv("../data/dl_performance.csv")
 
     # Arrange by sensitivity.
@@ -309,7 +396,7 @@ plot_metrics <- function(df,
     ggplot(aes(x = !!sym(study),
                y = as.numeric(!!sym(metric)),
                color = Method)) +
-    scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
     scale_y_continuous(limits = c(xlim, 1),
                        labels = function(y) label_parsed(paste0(y*100))) +
     scale_color_jama() +
@@ -447,7 +534,6 @@ ml_deep_metrics <- function(df, metric = "Sensitivity") {
     dplyr::select(Study1,
                   Study2,
                   Phenotype,
-                  Phenotype_ref,
                   diff,
                   DL_better,
                   !!sym(metric),
